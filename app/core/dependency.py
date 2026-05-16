@@ -12,6 +12,7 @@ from app.core.settings import settings
 from app.models.categories import Category
 from app.models.users import User
 from app.repositories import categories as category_repo
+from app.repositories import budget_cycles as cycle_repo
 from app.repositories import users as user_repo
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -90,3 +91,19 @@ async def check_category(
         raise ForbiddenException("You cannot access this category")
 
     return category
+
+
+async def check_cycle(
+    cycle_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    budget_cycle = await cycle_repo.get_budget_cycle_by_id(cycle_id, db)
+
+    if not budget_cycle:
+        raise FieldNotFoundException("budget_cycle", str(budget_cycle))
+
+    if budget_cycle.user_id != current_user.id:
+        raise ForbiddenException("You cannot access this budget_cycle")
+
+    return budget_cycle
