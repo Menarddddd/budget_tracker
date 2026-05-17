@@ -3,3 +3,4 @@ from app.models.budget_cycles import BudgetCycle
 from app.models.categories import Category
 from app.models.expenses import Expense
 from app.models.tokens import EmailVerificationToken
+from app.models.refresh_tokens import RefreshToken

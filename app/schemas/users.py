@@ -11,7 +11,12 @@ from pydantic import (
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    token_type: str = "Bearer"
+    refresh_token: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 class UserBase(BaseModel):

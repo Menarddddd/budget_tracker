@@ -5,6 +5,26 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
+class CategorySummary(BaseModel):
+    category_id: UUID
+    category_name: str
+    color: str
+    total_spent: Decimal
+    percentage_of_budget: float
+    percentage_of_spent: float
+
+
+class BudgetCycleSummary(BaseModel):
+    cycle_id: UUID
+    budget_amount: Decimal
+    total_spent: Decimal
+    remaining: Decimal
+    is_overspent: bool
+    overspent_amount: Decimal
+    percentage_spent: float
+    by_category: list[CategorySummary]
+
+
 class BudgetCycleBase(BaseModel):
     budget_amount: Decimal = Field(
         gt=0, max_digits=10, decimal_places=2, examples=[2000.00]

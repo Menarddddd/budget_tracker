@@ -13,6 +13,7 @@ from app.core.utils import clean_user_info
 from app.models.users import User
 from app.schemas.users import UserDelete, UserPasswordChange, UserUpdate
 from app.repositories import users as user_repo
+from app.repositories import refresh_tokens as token_repo
 
 
 async def update_profile_service(
@@ -48,6 +49,8 @@ async def change_password_service(
 
     current_user.hashed_password = hash_password(form_data.new_password)
     await user_repo.update(current_user, db)
+
+    await token_repo.revoke_all_for_user(current_user.id, db)
 
 
 async def delete_account_service(

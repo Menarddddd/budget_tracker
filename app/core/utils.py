@@ -1,5 +1,10 @@
 import calendar
 from datetime import date, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
+
+from app.core.settings import settings
 
 
 def get_cycle_start_for_today(preferred_day: int, today: date) -> date:
@@ -69,3 +74,28 @@ def clean_user_info(user_data: dict) -> dict:
         else:
             cleaned[key] = val
     return cleaned
+
+
+def send_email(to_email: str, subject: str, body: str):
+    message = MIMEMultipart()
+    message["From"] = settings.EMAIL_USERNAME
+    message["To"] = to_email
+    message["Subject"] = subject
+
+    message.attach(MIMEText(body, "html"))
+
+    try:
+        with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT) as server:
+            server.login(
+                settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD.get_secret_value()
+            )
+            server.sendmail(settings.EMAIL_USERNAME, to_email, message.as_string())
+        return True
+
+    except smtplib.SMTPAuthenticationError:
+        print("Authentication failed. Check your email and app password.")
+        return False
+
+    except smtplib.SMTPException as e:
+        print(f"Failed to send email: {e}")
+        return False

@@ -12,11 +12,13 @@ from app.repositories import budget_cycles as cycle_repo
 from app.schemas.budget_cycles import (
     BudgetCycleCreate,
     BudgetCycleResponse,
+    BudgetCycleSummary,
     BudgetCycleUpdate,
 )
 from app.services.budget_cycles import (
     create_budget_cycle_service,
     get_active_budget_cycle_service,
+    get_budget_cycle_summary_service,
     update_budget_cycle_service,
 )
 
@@ -61,6 +63,18 @@ async def get_budget_cycle(
     budget_cycle: Annotated[BudgetCycle, Depends(check_cycle)],
 ) -> BudgetCycle:
     return budget_cycle
+
+
+@router.get(
+    "/{cycle_id}/summary",
+    response_model=BudgetCycleSummary,
+    status_code=status.HTTP_200_OK,
+)
+async def get_budget_cycle_summary(
+    budget_cycle: Annotated[BudgetCycle, Depends(check_cycle)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await get_budget_cycle_summary_service(budget_cycle, db)
 
 
 @router.patch(

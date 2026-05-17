@@ -21,6 +21,8 @@ class EmailVerificationToken(Base):
         sa.ForeignKey("users.id"), nullable=False
     )
     token: Mapped[str] = mapped_column(sa.String(200), nullable=False, unique=True)
+    token_type: Mapped[str] = mapped_column(sa.String(100), nullable=False)
+    new_email: Mapped[str | None] = mapped_column(sa.String(100), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False
     )

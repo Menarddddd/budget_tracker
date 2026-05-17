@@ -12,7 +12,16 @@ class Settings(BaseSettings):
 
     ACCESS_SECRET_KEY: SecretStr
     ACCESS_MINUTES_EXPIRE: int
+
+    REFRESH_SECRET_KEY: SecretStr
+    REFRESH_DAYS_EXPIRE: int
+
     ALGORITHM: str
+
+    EMAIL_HOST: str
+    EMAIL_USERNAME: str
+    EMAIL_PASSWORD: SecretStr
+    EMAIL_PORT: int
 
 
 settings = Settings()  # type: ignore

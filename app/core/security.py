@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta, timezone
+import hashlib
 import jwt
+import hmac
+import secrets
 from pwdlib import PasswordHash
 
 from app.core.settings import settings
@@ -27,3 +30,24 @@ def create_access_token(sub: dict):
     )
 
     return payload
+
+
+def generate_verification_token() -> str:
+    """
+    Generates a random token for email verification and password reset
+    """
+    return secrets.token_urlsafe(32)
+
+
+def generate_refresh_token() -> str:
+    """Generates a random refresh token"""
+    return secrets.token_urlsafe(64)
+
+
+def hash_refresh_token(token: str) -> str:
+    """Deterministic hashing"""
+    return hmac.new(
+        key=settings.REFRESH_SECRET_KEY.get_secret_value().encode(),
+        msg=token.encode(),
+        digestmod=hashlib.sha256,
+    ).hexdigest()

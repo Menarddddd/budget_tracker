@@ -1,3 +1,4 @@
+from datetime import date
 from uuid import UUID
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,3 +49,19 @@ async def get_budget_cycles(user_id: UUID, db: AsyncSession):
     stmt = select(BudgetCycle).where(BudgetCycle.user_id == user_id)
     result = await db.execute(stmt)
     return result.scalars().all()
+
+
+async def get_cycle_by_date(
+    user_id: UUID,
+    expense_date: date,
+    db: AsyncSession,
+) -> BudgetCycle | None:
+    stmt = select(BudgetCycle).where(
+        and_(
+            BudgetCycle.user_id == user_id,
+            BudgetCycle.start_date <= expense_date,
+            BudgetCycle.end_date >= expense_date,
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()

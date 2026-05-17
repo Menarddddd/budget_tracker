@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.refresh_tokens import RefreshToken
     from app.models.tokens import EmailVerificationToken
     from app.models.budget_cycles import BudgetCycle
     from app.models.categories import Category
@@ -33,6 +34,9 @@ class User(Base):
         sa.DateTime(timezone=True), server_default=sa.func.now()
     )
 
+    refresh_tokens: Mapped["RefreshToken"] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     verification_tokens: Mapped[list["EmailVerificationToken"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )

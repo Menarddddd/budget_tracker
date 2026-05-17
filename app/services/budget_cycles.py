@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,7 +8,13 @@ from app.core.utils import calculate_end_date, get_cycle_start_for_today
 from app.models.budget_cycles import BudgetCycle
 from app.models.users import User
 from app.repositories import budget_cycles as cycle_repo
-from app.schemas.budget_cycles import BudgetCycleCreate, BudgetCycleUpdate
+from app.repositories import expenses as expense_repo
+from app.schemas.budget_cycles import (
+    BudgetCycleCreate,
+    BudgetCycleSummary,
+    BudgetCycleUpdate,
+    CategorySummary,
+)
 
 
 async def create_budget_cycle_service(
@@ -83,6 +90,77 @@ async def get_active_budget_cycle_service(
 
     # Cycle exists and is still running, just return it
     return active
+
+
+async def get_budget_cycle_summary_service(
+    budget_cycle: BudgetCycle,
+    db: AsyncSession,
+) -> BudgetCycleSummary:
+
+    # Get aggregated data from database
+    rows = await expense_repo.get_expense_summary_by_cycle(budget_cycle.id, db)
+
+    # Calculate total spent across ALL categories
+    total_spent = sum(
+        (row.total_spent for row in rows),
+        Decimal("0.00"),
+    )
+
+    # Calculate remaining
+    remaining = budget_cycle.budget_amount - total_spent
+
+    # Check if overspent
+    is_overspent = total_spent > budget_cycle.budget_amount
+    overspent_amount = (
+        total_spent - budget_cycle.budget_amount if is_overspent else Decimal("0.00")
+    )
+
+    # Overall percentage spent
+    if budget_cycle.budget_amount > 0:
+        percentage_spent = round(
+            float(total_spent / budget_cycle.budget_amount * 100), 1
+        )
+    else:
+        percentage_spent = 0.0
+
+    # Buil d per-category breakdown
+    by_category = []
+    for row in rows:
+        # % of the budget category use
+        if budget_cycle.budget_amount > 0:
+            pct_of_budget = round(
+                float(row.total_spent / budget_cycle.budget_amount * 100), 1
+            )
+        else:
+            pct_of_budget = 0.0
+
+        # total % spending on this category
+        if total_spent > 0:
+            pct_of_spent = round(float(row.total_spent / total_spent * 100), 1)
+        else:
+            pct_of_spent = 0.0
+
+        by_category.append(
+            CategorySummary(
+                category_id=row.category_id,
+                category_name=row.category_name,
+                color=row.color,
+                total_spent=row.total_spent,
+                percentage_of_budget=pct_of_budget,
+                percentage_of_spent=pct_of_spent,
+            )
+        )
+
+    return BudgetCycleSummary(
+        cycle_id=budget_cycle.id,
+        budget_amount=budget_cycle.budget_amount,
+        total_spent=total_spent,
+        remaining=remaining,
+        is_overspent=is_overspent,
+        overspent_amount=overspent_amount,
+        percentage_spent=percentage_spent,
+        by_category=by_category,
+    )
 
 
 async def update_budget_cycle_service(
