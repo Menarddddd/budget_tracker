@@ -1,8 +1,11 @@
+import base64
 import calendar
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import json
 import smtplib
+from uuid import UUID
 
 from app.core.settings import settings
 
@@ -99,3 +102,25 @@ def send_email(to_email: str, subject: str, body: str):
     except smtplib.SMTPException as e:
         print(f"Failed to send email: {e}")
         return False
+
+
+def encode_cursor(created_at: datetime, id: UUID) -> str:
+    """
+    Encodes created_at + id into a base64 string.
+    """
+    data = {
+        "created_at": created_at.isoformat(),
+        "id": str(id),
+    }
+    return base64.b64encode(json.dumps(data).encode()).decode()
+
+
+def decode_cursor(cursor: str) -> tuple[datetime, UUID]:
+    """
+    Decodes a cursor string back into created_at + id.
+    """
+    data = json.loads(base64.b64decode(cursor.encode()).decode())
+    return (
+        datetime.fromisoformat(data["created_at"]),
+        UUID(data["id"]),
+    )

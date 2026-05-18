@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, status
+from fastapi import Depends, Query, status
 from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,8 +9,17 @@ from app.core.database import get_db
 from app.core.dependency import check_expense, get_current_user
 from app.models.expenses import Expense
 from app.models.users import User
-from app.schemas.expenses import ExpenseCreate, ExpenseResponse, ExpenseUpdate
-from app.services.expenses import create_expense_service, update_expense_service
+from app.schemas.expenses import (
+    ExpenseCreate,
+    ExpenseResponse,
+    ExpenseUpdate,
+    PaginatedExpenseResponse,
+)
+from app.services.expenses import (
+    create_expense_service,
+    get_expenses_service,
+    update_expense_service,
+)
 from app.repositories import expenses as expense_repo
 
 router = APIRouter()
@@ -25,19 +34,23 @@ async def create_expense(
     return await create_expense_service(form_data, db, current_user)
 
 
-@router.get("", response_model=list[ExpenseResponse], status_code=status.HTTP_200_OK)
+@router.get("", response_model=PaginatedExpenseResponse, status_code=status.HTTP_200_OK)
 async def get_expenses(
     cycle_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    limit: int = Query(default=20, ge=1, le=100),
+    cursor: str | None = None,
 ):
-    return await expense_repo.get_cycle_expenses(cycle_id, current_user.id, db)
+    return await get_expenses_service(cycle_id, db, current_user, limit, cursor)
 
 
 @router.get(
     "/{expense_id}", response_model=ExpenseResponse, status_code=status.HTTP_200_OK
 )
-async def get_expense(expense: Annotated[Expense, Depends(check_expense)]):
+async def get_expense(
+    expense: Annotated[Expense, Depends(check_expense)],
+):
     return expense
 
 

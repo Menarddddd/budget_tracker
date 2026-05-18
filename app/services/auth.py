@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from fastapi import BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -119,7 +120,9 @@ async def _generate_tokens(
     )
 
 
-async def create_user_service(form_data: UserCreate, db: AsyncSession):
+async def create_user_service(
+    form_data: UserCreate, db: AsyncSession, background_task: BackgroundTasks
+):
     user_data = clean_user_info(form_data.model_dump())
 
     new_user = User(
@@ -160,8 +163,11 @@ async def create_user_service(form_data: UserCreate, db: AsyncSession):
         token=raw_token,
     )
 
-    send_email(
-        to_email=new_user.email, subject="Verify your Budget Tracker email", body=body
+    background_task.add_task(
+        send_email,
+        to_email=new_user.email,
+        subject="Verify your Budget Tracker email",
+        body=body,
     )
 
     return {
@@ -170,42 +176,32 @@ async def create_user_service(form_data: UserCreate, db: AsyncSession):
 
 
 async def verify_email_service(token: str, db: AsyncSession) -> dict:
-    # Step 1: Find token in DB
     token_record = await verify_repo.get_by_token(token, db)
 
-    # Step 2: Check if token exists
     if not token_record:
         raise BadRequestException("Invalid or expired verification token")
 
-    # Step 3: Check token type
     if token_record.token_type != "email_verification":
         raise BadRequestException("Invalid token type")
 
-    # Step 4: Check if expired
     if token_record.expires_at < datetime.now(timezone.utc):
-        # Delete expired token
         await verify_repo.delete(token_record, db)
         raise BadRequestException(
             "Verification token has expired. Please request a new one."
         )
 
-    # Step 5: Get the user
     user = await user_repo.get_user_by_id(token_record.user_id, db)
 
     if not user:
         raise BadRequestException("User not found")
 
-    # Step 6: Check if already verified
     if user.is_verified:
-        # Delete the token since it's no longer needed
         await verify_repo.delete(token_record, db)
         raise BadRequestException("Email is already verified. You can login.")
 
-    # Step 7: Mark user as verified
     user.is_verified = True
     await user_repo.update(user, db)
 
-    # Step 8: Delete used token (one-time use)
     await verify_repo.delete(token_record, db)
 
     return {"message": "Email verified successfully. You can now login."}

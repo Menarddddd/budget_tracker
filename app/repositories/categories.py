@@ -47,3 +47,9 @@ async def get_custom_categories(user_id: UUID, db: AsyncSession):
     stmt = select(Category).where(Category.user_id == user_id)
     result = await db.execute(stmt)
     return result.scalars().all()
+
+
+async def get_default_categories(db: AsyncSession):
+    stmt = select(Category).where(Category.is_default.is_(True))
+    result = await db.execute(stmt)
+    return result.scalars().all()

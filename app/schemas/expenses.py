@@ -22,6 +22,8 @@ class ExpenseResponse(ExpenseBase):
     updated_at: datetime
     created_at: datetime
 
+    model_config = ConfigDict(from_attributes=True)  # ← added
+
 
 class ExpenseUpdate(BaseModel):
     category_id: UUID | None = None
@@ -32,3 +34,9 @@ class ExpenseUpdate(BaseModel):
     expense_date: date | None = Field(default=None, examples=["2025-03-21"])
 
     model_config = ConfigDict(extra="forbid")
+
+
+class PaginatedExpenseResponse(BaseModel):
+    items: list[ExpenseResponse]
+    next_cursor: str | None
+    has_next: bool

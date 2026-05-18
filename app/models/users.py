@@ -25,6 +25,9 @@ class User(Base):
     username: Mapped[str] = mapped_column(sa.String(100), nullable=False, index=True)
     email: Mapped[str] = mapped_column(sa.String(100), nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(sa.String(200), nullable=False)
+    is_admin: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False, server_default=sa.text("false")
+    )
     deletion_reason: Mapped[str | None] = mapped_column(sa.String(200), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True

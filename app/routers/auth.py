@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, status, Request
+from fastapi import Depends, status, Request, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.routing import APIRouter
@@ -47,9 +47,10 @@ async def refresh(
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def create_user(
     form_data: UserCreate,
+    background_task: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    return await create_user_service(form_data, db)
+    return await create_user_service(form_data, db, background_task)
 
 
 @router.get("/verify-email", status_code=status.HTTP_200_OK)

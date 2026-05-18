@@ -78,6 +78,14 @@ async def get_current_user(
     return user
 
 
+async def require_admin(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    if not current_user.is_admin:
+        raise ForbiddenException("Admin access required")
+    return current_user
+
+
 async def check_cycle(
     cycle_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],

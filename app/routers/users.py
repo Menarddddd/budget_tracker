@@ -25,7 +25,6 @@ router = APIRouter()
 
 @router.get("", response_model=UserResponse, status_code=status.HTTP_200_OK)
 async def profile(
-    db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     return current_user

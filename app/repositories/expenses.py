@@ -1,7 +1,8 @@
 from uuid import UUID
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.utils import decode_cursor
 from app.models.categories import Category
 from app.models.expenses import Expense
 
@@ -33,10 +34,33 @@ async def get_expense_by_id(expense_id: UUID, db: AsyncSession) -> Expense | Non
     return result.scalar_one_or_none()
 
 
-async def get_cycle_expenses(cycle_id: UUID, user_id: UUID, db: AsyncSession):
-    stmt = select(Expense).where(
-        Expense.cycle_id == cycle_id, Expense.user_id == user_id
+async def get_cycle_expenses(
+    cycle_id: UUID,
+    user_id: UUID,
+    db: AsyncSession,
+    limit: int = 20,
+    cursor: str | None = None,
+):
+    stmt = (
+        select(Expense)
+        .where(Expense.cycle_id == cycle_id, Expense.user_id == user_id)
+        .order_by(Expense.created_at.desc(), Expense.id.desc())
+        .limit(limit + 1)
     )
+
+    if cursor:
+        cursor_created_at, cursor_id = decode_cursor(cursor)
+
+        stmt = stmt.where(
+            or_(
+                Expense.created_at < cursor_created_at,
+                and_(
+                    Expense.created_at == cursor_created_at,
+                    Expense.id < cursor_id,
+                ),
+            )
+        )
+
     result = await db.execute(stmt)
     return result.scalars().all()
 
