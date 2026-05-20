@@ -8,9 +8,12 @@ from app.core.exceptions import (
     BadRequestException,
     CredentialsException,
     DuplicateEntryException,
+    FieldNotFoundException,
+    ForbiddenException,
 )
 from app.core.security import (
     create_access_token,
+    create_and_save_token,
     generate_refresh_token,
     generate_verification_token,
     hash_password,
@@ -39,8 +42,8 @@ async def login_service(
     if user.deleted_at:
         raise BadRequestException("Account is deleted, recover it first")
 
-    # if not user.is_verified:
-    #     raise ForbiddenException("Please verify your email first")
+    if not user.is_verified:
+        raise ForbiddenException("Please verify your email first")
 
     return await _generate_tokens(user, db, user_agent)
 
@@ -135,7 +138,6 @@ async def create_user_service(
 
     try:
         await user_repo.save(new_user, db)
-
     except IntegrityError as e:
         await db.rollback()
         error = str(e.orig)
@@ -147,32 +149,58 @@ async def create_user_service(
         else:
             raise BadRequestException("Account could not be created")
 
-    raw_token = generate_verification_token()
+    try:
+        raw_token = await create_and_save_token(new_user.id, "email_verification", db)
 
-    verification_token = EmailVerificationToken(
-        user_id=new_user.id,
-        token=raw_token,
-        token_type="email_verification",
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-    )
+        body = verification_email_template(
+            username=new_user.username,
+            token=raw_token,
+        )
 
-    await verify_repo.save(verification_token, db)
+        background_task.add_task(
+            send_email,
+            to_email=new_user.email,
+            subject="Verify your Budget Tracker email",
+            body=body,
+        )
+    except Exception:
+        # Token/email failed but user was created
+        # User can still request resend later
+        pass
+
+    return {
+        "message": "You've successfully created your account, you can now login with it"
+    }
+
+
+async def resend_email_verification_service(
+    email: str, db: AsyncSession, background_task: BackgroundTasks
+):
+    user = await user_repo.get_user_by_email(email, db)
+    if not user:
+        raise FieldNotFoundException("user", email)
+
+    if user.is_verified:
+        raise BadRequestException("Email is already verified. You can login.")
+
+    # Delete old tokens before creating new one
+    await verify_repo.delete_by_user_id(user.id, "email_verification", db)
+
+    raw_token = await create_and_save_token(user.id, "email_verification", db)
 
     body = verification_email_template(
-        username=new_user.username,
+        username=user.username,
         token=raw_token,
     )
 
     background_task.add_task(
         send_email,
-        to_email=new_user.email,
+        to_email=user.email,
         subject="Verify your Budget Tracker email",
         body=body,
     )
 
-    return {
-        "message": "You've successfully created your account, you can now login with it"
-    }
+    return {"message": "We've sent the verification to your email"}
 
 
 async def verify_email_service(token: str, db: AsyncSession) -> dict:
@@ -182,6 +210,7 @@ async def verify_email_service(token: str, db: AsyncSession) -> dict:
         raise BadRequestException("Invalid or expired verification token")
 
     if token_record.token_type != "email_verification":
+        await verify_repo.delete(token_record, db)
         raise BadRequestException("Invalid token type")
 
     if token_record.expires_at < datetime.now(timezone.utc):
@@ -193,6 +222,7 @@ async def verify_email_service(token: str, db: AsyncSession) -> dict:
     user = await user_repo.get_user_by_id(token_record.user_id, db)
 
     if not user:
+        await verify_repo.delete(token_record, db)
         raise BadRequestException("User not found")
 
     if user.is_verified:
@@ -201,7 +231,6 @@ async def verify_email_service(token: str, db: AsyncSession) -> dict:
 
     user.is_verified = True
     await user_repo.update(user, db)
-
     await verify_repo.delete(token_record, db)
 
-    return {"message": "Email verified successfully. You can now login."}
+    return {"message": "Email verified successfully."}

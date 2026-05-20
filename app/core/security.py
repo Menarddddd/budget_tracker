@@ -1,11 +1,15 @@
 from datetime import datetime, timedelta, timezone
 import hashlib
+from uuid import UUID
 import jwt
 import hmac
 import secrets
 from pwdlib import PasswordHash
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import settings
+from app.models.tokens import EmailVerificationToken
+from app.repositories import verification_tokens as verify_repo
 
 password_hash = PasswordHash.recommended()
 
@@ -51,3 +55,17 @@ def hash_refresh_token(token: str) -> str:
         msg=token.encode(),
         digestmod=hashlib.sha256,
     ).hexdigest()
+
+
+async def create_and_save_token(user_id: UUID, token_type: str, db: AsyncSession):
+    raw_token = generate_verification_token()
+
+    verification_token = EmailVerificationToken(
+        user_id=user_id,
+        token=raw_token,
+        token_type=token_type,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+    )
+
+    await verify_repo.save(verification_token, db)
+    return raw_token

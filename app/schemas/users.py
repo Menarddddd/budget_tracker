@@ -77,3 +77,7 @@ class UserDelete(BaseModel):
 class EmailChangeRequest(BaseModel):
     new_email: EmailStr = Field(min_length=7, max_length=100)
     password: str = Field(min_length=7, max_length=200)
+
+
+class ResendEmailVerificationRequest(BaseModel):
+    email: EmailStr = Field(min_length=7, max_length=100)

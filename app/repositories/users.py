@@ -41,3 +41,7 @@ async def get_user_by_id(user_id: UUID, db: AsyncSession, *options):
 
 async def get_user_by_username(username: str, db: AsyncSession, *options):
     return await _get_user(User.username == username, db, *options)
+
+
+async def get_user_by_email(email: str, db: AsyncSession, *options):
+    return await _get_user(User.email == email, db, *options)

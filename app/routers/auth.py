@@ -6,12 +6,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.routing import APIRouter
 
 from app.core.database import get_db
-from app.schemas.users import RefreshRequest, Token, UserCreate
+from app.schemas.users import (
+    RefreshRequest,
+    ResendEmailVerificationRequest,
+    Token,
+    UserCreate,
+)
 from app.services.auth import (
     create_user_service,
     login_service,
     logout_service,
     refresh_token_service,
+    resend_email_verification_service,
     verify_email_service,
 )
 
@@ -54,5 +60,17 @@ async def create_user(
 
 
 @router.get("/verify-email", status_code=status.HTTP_200_OK)
-async def verify_email(token: str, db: Annotated[AsyncSession, Depends(get_db)]):
+async def verify_email(
+    token: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     return await verify_email_service(token, db)
+
+
+@router.post("/resend-verification-email", status_code=status.HTTP_200_OK)
+async def resend_verification_email(
+    form_data: ResendEmailVerificationRequest,
+    background_task: BackgroundTasks,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await resend_email_verification_service(form_data.email, db, background_task)

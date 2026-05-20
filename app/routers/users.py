@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, status
+from fastapi import BackgroundTasks, Depends, status
 from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +14,9 @@ from app.schemas.users import (
     UserResponse,
     UserUpdate,
 )
+
 from app.services.users import (
+    change_email_service,
     change_password_service,
     delete_account_service,
     update_profile_service,
@@ -51,10 +53,11 @@ async def change_password(
 @router.post("/change-email", status_code=status.HTTP_200_OK)
 async def change_email(
     form_data: EmailChangeRequest,
+    background_task: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-    pass
+    return await change_email_service(form_data, db, current_user, background_task)
 
 
 @router.post("/delete-account", status_code=status.HTTP_204_NO_CONTENT)
