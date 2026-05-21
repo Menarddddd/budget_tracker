@@ -1,7 +1,6 @@
 from urllib.parse import quote_plus
 
-# Change this to your actual production Vercel URL
-FRONTEND_URL = "https://budget-tracker-menard-s-projects.vercel.app"
+FRONTEND_URL = "https://budget-tracker-liart-nu.vercel.app"
 
 
 def verification_email_template(

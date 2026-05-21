@@ -152,20 +152,6 @@ async def create_user_service(
         else:
             raise BadRequestException("Account could not be created")
 
-    raw_token = await create_and_save_token(new_user.id, "email_verification", db)
-
-    body = verification_email_template(
-        username=new_user.username,
-        token=raw_token,
-    )
-
-    background_task.add_task(
-        send_email,
-        to_email=new_user.email,
-        subject="Verify your Budget Tracker email",
-        body=body,
-    )
-
     return {
         "message": "You've successfully created your account, you can now login with it"
     }
