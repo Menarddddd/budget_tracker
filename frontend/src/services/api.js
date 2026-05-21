@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const api = axios.create({ baseURL: "http://localhost:8000" });
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+const api = axios.create({ baseURL: BASE_URL });
 
 // Track if we're currently refreshing
 let isRefreshing = false;
@@ -66,7 +68,7 @@ api.interceptors.response.use(
 
             try {
                 const response = await axios.post(
-                    "http://localhost:8000/auth/refresh",
+                    `${BASE_URL}/auth/refresh`,
                     { refresh_token: refresh_token }
                 );
 
@@ -96,4 +98,4 @@ api.interceptors.response.use(
     }
 );
 
-export default api
+export default api;

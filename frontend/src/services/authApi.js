@@ -1,7 +1,9 @@
 import axios from "axios";
 import api from "./api";
 
-const rawAxios = axios.create({ baseURL: "http://localhost:8000" });
+const rawAxios = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+});
 
 export async function handleLogin(username, password) {
     const response = await api.post(
@@ -30,6 +32,7 @@ export async function verifyEmail(token) {
     });
     return response.data;
 }
+
 export async function forgotPassword(email) {
     const response = await api.post("/auth/reset-password", {
         email: email,
