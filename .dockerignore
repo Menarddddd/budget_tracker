@@ -1,26 +1,30 @@
 # Python
-__pycache__
-*.py[oc]
 .venv
-*.egg-info
-dist
-build
-wheels
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
 
+# Env / secrets
 .env
 .env.*
 
-frontend/node_modules
-frontend/dist
-frontend/.vscode
-
+# Git
 .git
 .gitignore
 
-.dockerignore
-docker-compose.yml
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.vite
+frontend/.env
+frontend/.env.*
 
-# Misc
+# OS / editor
+.vscode
+.idea
 .DS_Store
-*.log
+
+# Optional
 README.md
