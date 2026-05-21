@@ -81,3 +81,14 @@ class EmailChangeRequest(BaseModel):
 
 class ResendEmailVerificationRequest(BaseModel):
     email: EmailStr = Field(min_length=7, max_length=100)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr = Field(min_length=7, max_length=100)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=7, max_length=200)
+
+    model_config = ConfigDict(extra="forbid")

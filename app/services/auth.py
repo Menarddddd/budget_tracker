@@ -3,7 +3,10 @@ from fastapi import BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.email_templates import verification_email_template
+from app.core.email_templates import (
+    forgot_password_verification_template,
+    verification_email_template,
+)
 from app.core.exceptions import (
     BadRequestException,
     CredentialsException,
@@ -28,7 +31,7 @@ from app.models.users import User
 from app.repositories import users as user_repo
 from app.repositories import refresh_tokens as token_repo
 from app.repositories import verification_tokens as verify_repo
-from app.schemas.users import Token, UserCreate
+from app.schemas.users import ResetPasswordRequest, Token, UserCreate
 
 
 async def login_service(
@@ -149,24 +152,19 @@ async def create_user_service(
         else:
             raise BadRequestException("Account could not be created")
 
-    try:
-        raw_token = await create_and_save_token(new_user.id, "email_verification", db)
+    raw_token = await create_and_save_token(new_user.id, "email_verification", db)
 
-        body = verification_email_template(
-            username=new_user.username,
-            token=raw_token,
-        )
+    body = verification_email_template(
+        username=new_user.username,
+        token=raw_token,
+    )
 
-        background_task.add_task(
-            send_email,
-            to_email=new_user.email,
-            subject="Verify your Budget Tracker email",
-            body=body,
-        )
-    except Exception:
-        # Token/email failed but user was created
-        # User can still request resend later
-        pass
+    background_task.add_task(
+        send_email,
+        to_email=new_user.email,
+        subject="Verify your Budget Tracker email",
+        body=body,
+    )
 
     return {
         "message": "You've successfully created your account, you can now login with it"
@@ -234,3 +232,55 @@ async def verify_email_service(token: str, db: AsyncSession) -> dict:
     await verify_repo.delete(token_record, db)
 
     return {"message": "Email verified successfully."}
+
+
+async def forgot_password_service(
+    email: str, db: AsyncSession, background_task: BackgroundTasks
+):
+    user = await user_repo.get_user_by_email(email, db)
+    if not user:
+        raise FieldNotFoundException("user", email)
+
+    raw_token = await create_and_save_token(user.id, "forgot_password_verification", db)
+
+    body = forgot_password_verification_template(user.username, raw_token)
+
+    background_task.add_task(
+        send_email,
+        to_email=user.email,
+        subject="Reset Password Verification",
+        body=body,
+    )
+
+    return {"message": "We've sent the verification to your email"}
+
+
+async def verify_reset_password_service(
+    form_data: ResetPasswordRequest, db: AsyncSession
+):
+    token_record = await verify_repo.get_by_token(form_data.token, db)
+
+    if not token_record:
+        raise BadRequestException("Invalid or expired reset token")
+
+    if token_record.token_type != "forgot_password_verification":
+        await verify_repo.delete(token_record, db)
+        raise BadRequestException("Invalid token type")
+
+    if token_record.expires_at < datetime.now(timezone.utc):
+        await verify_repo.delete(token_record, db)
+        raise BadRequestException("Reset token has expired. Please request a new one.")
+
+    user = await user_repo.get_user_by_id(token_record.user_id, db)
+
+    if not user:
+        await verify_repo.delete(token_record, db)
+        raise BadRequestException("User not found")
+
+    user.hashed_password = hash_password(form_data.new_password)
+    await user_repo.update(user, db)
+    await verify_repo.delete(token_record, db)
+
+    await verify_repo.delete_by_user_id(user.id, "forgot_password_verification", db)
+
+    return {"message": "Password reset successfully. You can now login."}

@@ -7,18 +7,22 @@ from fastapi.routing import APIRouter
 
 from app.core.database import get_db
 from app.schemas.users import (
+    ForgotPasswordRequest,
     RefreshRequest,
     ResendEmailVerificationRequest,
+    ResetPasswordRequest,
     Token,
     UserCreate,
 )
 from app.services.auth import (
     create_user_service,
+    forgot_password_service,
     login_service,
     logout_service,
     refresh_token_service,
     resend_email_verification_service,
     verify_email_service,
+    verify_reset_password_service,
 )
 
 router = APIRouter()
@@ -74,3 +78,20 @@ async def resend_verification_email(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await resend_email_verification_service(form_data.email, db, background_task)
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def forgot_password(
+    form_data: ForgotPasswordRequest,
+    background_task: BackgroundTasks,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await forgot_password_service(form_data.email, db, background_task)
+
+
+@router.post("/verify-reset-password", status_code=status.HTTP_200_OK)
+async def verify_reset_password(
+    form_data: ResetPasswordRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await verify_reset_password_service(form_data, db)

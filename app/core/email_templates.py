@@ -116,3 +116,68 @@ def change_email_verification_template(username: str, token: str) -> str:
       </body>
     </html>
     """
+
+
+from urllib.parse import quote_plus
+
+
+def forgot_password_verification_template(
+    username: str, token: str, base_url: str = "http://localhost:5173"
+) -> str:
+    reset_link = f"{base_url}/reset-password?token={quote_plus(token)}"
+
+    return f"""
+    <html>
+      <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: Arial, sans-serif;">
+        <div style="max-width: 600px; margin: 40px auto; background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+
+          <div style="background-color: #ef4444; padding: 24px; text-align: center;">
+            <h1 style="margin: 0; color: white; font-size: 24px;">Budget Tracker</h1>
+          </div>
+
+          <div style="padding: 32px;">
+            <h2 style="margin-top: 0; color: #111827;">Hello, {username}</h2>
+
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
+              We received a request to reset your password.
+              Click the button below to continue.
+            </p>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a
+                href="{reset_link}"
+                style="
+                  display: inline-block;
+                  background-color: #ef4444;
+                  color: white;
+                  text-decoration: none;
+                  padding: 14px 24px;
+                  border-radius: 10px;
+                  font-size: 15px;
+                  font-weight: bold;
+                "
+              >
+                Reset Password
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+              If the button above does not work, copy and paste this link into your browser:
+            </p>
+
+            <div style="word-break: break-all; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; font-size: 13px; color: #374151;">
+              {reset_link}
+            </div>
+
+            <div style="margin-top: 24px; padding: 16px; background-color: #fef2f2; border-radius: 8px; border: 1px solid #fecaca;">
+              <p style="margin: 0; color: #991b1b; font-size: 13px; line-height: 1.6;">
+                This link expires in <strong>24 hours</strong>.<br>
+                If you did not request a password reset, you can safely ignore this email.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </body>
+    </html>
+    """
