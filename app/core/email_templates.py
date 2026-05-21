@@ -1,10 +1,13 @@
 from urllib.parse import quote_plus
 
+# Change this to your actual production Vercel URL
+FRONTEND_URL = "https://budget-tracker-menard-s-projects.vercel.app"
+
 
 def verification_email_template(
     username: str,
     token: str,
-    base_url: str = "https://budget-tracker-mh5lg6o9w-menard-s-projects.vercel.app",
+    base_url: str = FRONTEND_URL,
 ) -> str:
     verification_link = f"{base_url}/verify-email?token={quote_plus(token)}"
 
@@ -123,7 +126,7 @@ def change_email_verification_template(username: str, token: str) -> str:
 def forgot_password_verification_template(
     username: str,
     token: str,
-    base_url: str = "https://budget-tracker-mh5lg6o9w-menard-s-projects.vercel.app",
+    base_url: str = FRONTEND_URL,
 ) -> str:
     reset_link = f"{base_url}/reset-password?token={quote_plus(token)}"
 
